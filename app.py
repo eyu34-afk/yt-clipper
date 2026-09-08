@@ -1,4 +1,4 @@
-import os
+﻿import os
 from flask import Flask, render_template, request, send_file, jsonify
 import yt_dlp
 
@@ -19,7 +19,6 @@ def clip_video():
 
     output_filename = 'output_clip.mp4'
     
-    # Clean up any leftover clip from previous runs
     if os.path.exists(output_filename):
         os.remove(output_filename)
 
