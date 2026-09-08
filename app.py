@@ -21,12 +21,16 @@ def clip_video():
     if os.path.exists(output_path):
         os.remove(output_path)
 
-    # yt-dlp options configured with cookies and client spoofing to bypass bot checks on cloud servers
+    # Definitive yt-dlp configuration to bypass cloud bot checks
     ydl_opts = {
         'format': 'bestvideo+bestaudio/best',
         'outtmpl': output_path,
         'cookiefile': 'cookies.txt',
-        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['mweb', 'android']
+            }
+        },
     }
 
     try:
