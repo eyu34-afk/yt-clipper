@@ -1,6 +1,6 @@
 import os
-import subprocess
-from flask import Flask, request, send_file, render_template
+from flask import Flask, render_template, request, send_file, jsonify
+import yt_dlp
 
 app = Flask(__name__)
 
@@ -8,37 +8,41 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
-@app.route('/download', methods=['POST'])
-def download_clip():
+@app.route('/clip', methods=['POST'])
+def clip_video():
     url = request.form.get('url')
-    start = request.form.get('start')  # Format: mm:ss or hh:mm:ss
-    end = request.form.get('end')      # Format: mm:ss or hh:mm:ss
+    start_time = request.form.get('start_time', '00:00:00')
+    end_time = request.form.get('end_time', '00:00:30')
     
-    output_filename = "output_clip.mp4"
+    if not url:
+        return jsonify({'error': 'Please provide a valid YouTube URL.'}), 400
+
+    output_filename = 'output_clip.mp4'
     
-    # Clean up old file if it exists
+    # Clean up any leftover clip from previous runs
     if os.path.exists(output_filename):
         os.remove(output_filename)
 
-    section_arg = f"*{start}-{end}"
-    command = [
-        "yt-dlp",
-        "-f", "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / mp4",
-        "--download-sections", section_arg,
-        "-o", output_filename,
-        url
-    ]
-    
+    section_range = f"*{start_time}-{end_time}"
+
+    ydl_opts = {
+        'format': 'bestvideo+bestaudio/best',
+        'merge_output_format': 'mp4',
+        'download_sections': [section_range],
+        'outtmpl': output_filename,
+    }
+
     try:
-        # Execute the download command on the server
-        subprocess.run(command, check=True)
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
         
         if os.path.exists(output_filename):
             return send_file(output_filename, as_attachment=True)
         else:
-            return "Error: Clip could not be generated.", 500
+            return jsonify({'error': 'Failed to generate the video clip.'}), 500
+            
     except Exception as e:
-        return f"An error occurred: {str(e)}", 500
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
